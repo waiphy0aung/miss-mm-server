@@ -108,6 +108,7 @@ export const login = async (req, res) => {
 export const loginWithToken = async (req, res) => {
   try {
     let token = req.header("Authorization");
+    console.log(token)
 
     if (!token) return res.status(403).json({ data: "Unauthenticate", status: 'error' })
 
@@ -119,7 +120,7 @@ export const loginWithToken = async (req, res) => {
     if (!payload)
       return res.status(401).json({ status: 'error', data: 'token is wrong' });
 
-    const user = await UsersModel.findByPk(payload.id, { attributes: { exclude: ['password'] } });
+    const user = await User.findById(payload.id, { attributes: { exclude: ['password'] } });
     if (!user)
       return res.status(401).json({ status: 'error', data: 'token is wrong' });
 
