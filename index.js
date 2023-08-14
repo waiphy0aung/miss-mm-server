@@ -4,6 +4,7 @@ import mongoose from 'mongoose'
 import bodyParser from 'body-parser'
 import helmet from 'helmet'
 import path from 'path'
+import http from "node:http"
 import dotenv from 'dotenv'
 import morgan from 'morgan'
 import { fileURLToPath } from 'url'
@@ -27,16 +28,20 @@ app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }))
 app.use("/assets", express.static(path.join(__dirname, "public/assets")))
 app.use(cors())
 
-app.use('/auth',authRoutes)
-app.use('/categories',verifyToken, categoryRoutes)
-app.use('/misses',verifyToken,missRoutes)
-app.use('/vote',verifyToken,voteRoutes)
+const server = http.createServer(app)
 
 const port = process.env.port || 3002;
-mongoose.set('strictQuery',true);
-mongoose.connect(process.env.MONGO_URL,{
+mongoose.set('strictQuery', true);
+mongoose.connect(process.env.MONGO_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-  .then(() => app.listen(port, () => console.log("listening to port:",port)))
-  .catch(err => err + " didn't connect")
+  .then(() => {
+    console.log("database connected")
+    app.use('/auth', authRoutes)
+    app.use('/categories', verifyToken, categoryRoutes)
+    app.use('/misses', verifyToken, missRoutes)
+    app.use('/vote', verifyToken, voteRoutes)
+  })
+  .catch(err => console.log(err + " didn't connect"))
+  .finally(() => server.listen(port,() => console.log("server is listening at port "+port)))
