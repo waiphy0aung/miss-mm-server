@@ -104,3 +104,32 @@ export const login = async (req, res) => {
     res.status(500).json({ data: err.message, status: 'error' })
   }
 }
+
+export const loginWithToken = async (req, res) => {
+  try {
+    let token = req.header("Authorization");
+
+    if (!token) return res.status(403).json({ data: "Unauthenticate", status: 'error' })
+
+    if (token.startsWith("Bearer ")) {
+      token = token.slice(7, token.length).trimLeft();
+    }
+    const payload = jwt.verify(token, process.env.JWT_SECRET)
+
+    if (!payload)
+      return res.status(401).json({ status: 'error', data: 'token is wrong' });
+
+    const user = await UsersModel.findByPk(payload.id, { attributes: { exclude: ['password'] } });
+    if (!user)
+      return res.status(401).json({ status: 'error', data: 'token is wrong' });
+
+    const newToken = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    res.status(200).json({status: 'success',data: {
+      token: newToken,
+      user: user,
+      role: user.role
+    }})
+  } catch (err) {
+    res.status(500).json({ status: 'error', data: err.message })
+  }
+}
