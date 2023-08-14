@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url'
 import authRoutes from './routes/auth.route.js'
 import categoryRoutes from './routes/category.route.js'
 import missRoutes from './routes/miss.route.js'
+import voteRoutes from './routes/vote.route.js'
 import { verifyToken } from './middlewares/auth.middleware.js'
 
 const __filename = fileURLToPath(import.meta.url);
@@ -29,6 +30,7 @@ app.use(cors())
 app.use('/auth',authRoutes)
 app.use('/categories',verifyToken, categoryRoutes)
 app.use('/misses',verifyToken,missRoutes)
+app.use('/vote',verifyToken,voteRoutes)
 
 const port = process.env.port || 3002;
 mongoose.set('strictQuery',true);

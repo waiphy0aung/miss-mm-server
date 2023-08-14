@@ -3,6 +3,7 @@ import Joi from "joi";
 import { joiValidator } from "../utilities/joi.js";
 import slugify from "../utilities/slugify.js";
 import { ObjectId } from "mongodb";
+import Vote from "../models/vote.model.js";
 
 export const get = async (req, res) => {
   try {
@@ -98,6 +99,7 @@ export const destroy = async (req, res) => {
       status: 'error',
       data: 'Category not found'
     })
+    await Vote.deleteMany({categoryId: new ObjectId(id)})
     await Category.findByIdAndDelete(id)
     res.status(200).json({
       status: 'success',

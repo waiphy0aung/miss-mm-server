@@ -6,10 +6,107 @@ import { storage } from '../firebase.js'
 import { ref, uploadBytes, deleteObject, getDownloadURL } from 'firebase/storage'
 import { faker } from "@faker-js/faker"
 import urlToPath from "../utilities/urlToPath.js";
+import Vote from "../models/vote.model.js";
+import { ObjectId } from "mongodb";
 
 export const get = async (req, res) => {
   try {
-    const misses = await Miss.find();
+    const { id } = req.user;
+    let misses = await Miss.aggregate([
+      {
+        '$lookup': {
+          'from': 'votes',
+          'let': {
+            'missId': '$_id'
+          },
+          'pipeline': [
+            {
+              '$match': {
+                '$expr': {
+                  '$eq': [
+                    '$missId', '$$missId'
+                  ]
+                }
+              }
+            }, {
+              '$count': 'count'
+            }
+          ],
+          'as': 'voteCount'
+        }
+      }, {
+        '$lookup': {
+          'from': 'votes',
+          'let': {
+            'missId': '$_id',
+            'userId': new ObjectId('64d87a9866e3efbfaac71995')
+          },
+          'pipeline': [
+            {
+              '$match': {
+                '$expr': {
+                  '$eq': [
+                    '$userId', '$$userId'
+                  ],
+                  '$eq': [
+                    '$missId', '$$missId'
+                  ]
+                }
+              }
+            }, {
+              '$count': 'count'
+            }, {
+              '$project': {
+                'is_vote': {
+                  '$cond': [
+                    {
+                      '$gte': [
+                        '$count', 0
+                      ]
+                    }, true, false
+                  ]
+                }
+              }
+            }
+          ],
+          'as': 'isVote'
+        }
+      }, {
+        '$unwind': {
+          'path': '$voteCount',
+          'preserveNullAndEmptyArrays': true
+        }
+      }, {
+        '$unwind': {
+          'path': '$isVote',
+          'preserveNullAndEmptyArrays': true
+        }
+      }, {
+        '$replaceWith': {
+          '$setField': {
+            'field': 'voteCount',
+            'input': '$$ROOT',
+            'value': {
+              '$ifNull': [
+                '$voteCount.count', 0
+              ]
+            }
+          }
+        }
+      }, {
+        '$replaceWith': {
+          '$setField': {
+            'field': 'isVote',
+            'input': '$$ROOT',
+            'value': {
+              '$ifNull': [
+                '$isVote.is_vote', false
+              ]
+            }
+          }
+        }
+      }
+    ]);
     res.status(200).json({
       status: 'success',
       data: misses
@@ -151,6 +248,7 @@ export const destroy = async (req, res) => {
     const { id } = req.params;
     const miss = await Miss.findById(id);
     if (!miss) return res.status(500).json({ status: 'error', data: 'Miss not found' })
+    await Vote.deleteMany({ missId: new ObjectId(id) })
     await Miss.findByIdAndDelete(id)
     if (miss.image.includes("firebase")) await deleteObject(ref(storage, urlToPath(miss.image)))
     res.status(200).json({ status: 'success', data: id })
