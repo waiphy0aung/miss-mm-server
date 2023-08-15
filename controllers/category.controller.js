@@ -67,7 +67,7 @@ export const update = async (req, res) => {
     })
     const schema = Joi.object({
       name: Joi.string().min(3).max(20)
-    })
+    }).unknown(true)
     const { error } = joiValidator(req.body, schema)
     if (error) return res.status(500).json({
       status: 'fail',
