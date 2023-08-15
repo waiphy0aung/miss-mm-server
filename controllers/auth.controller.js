@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Joi from "joi";
 import { joiValidator } from "../utilities/joi.js";
+import { faker } from "@faker-js/faker";
 
 export const register = async (req, res) => {
   try {
@@ -47,6 +48,7 @@ export const register = async (req, res) => {
       profile,
       email,
       password: passwordHash,
+      profile: faker.image.avatarGitHub()
     })
 
     await newUser.save();
@@ -81,6 +83,7 @@ export const login = async (req, res) => {
     }
 
     let user = await User.findOne({ email: email });
+    console.log(user)
 
     if (!user) return res.status(404).json({ data: "Email or Password invalid!", status: 'error' })
 
@@ -101,6 +104,7 @@ export const login = async (req, res) => {
       }
     })
   } catch (err) {
+    console.log(err)
     res.status(500).json({ data: err.message, status: 'error' })
   }
 }
@@ -108,7 +112,6 @@ export const login = async (req, res) => {
 export const loginWithToken = async (req, res) => {
   try {
     let token = req.header("Authorization");
-    console.log(token)
 
     if (!token) return res.status(403).json({ data: "Unauthenticate", status: 'error' })
 
@@ -120,7 +123,7 @@ export const loginWithToken = async (req, res) => {
     if (!payload)
       return res.status(401).json({ status: 'error', data: 'token is wrong' });
 
-    const user = await User.findById(payload.id, { attributes: { exclude: ['password'] } });
+    const user = await User.findById(payload.id,{password: 0});
     if (!user)
       return res.status(401).json({ status: 'error', data: 'token is wrong' });
 
