@@ -38,6 +38,7 @@ mongoose.connect(process.env.MONGO_URL, {
 })
   .then(() => {
     console.log("database connected")
+    app.get('/',(req,res) => res.status(200).json({status: "success"}))
     app.use('/auth', authRoutes)
     app.use('/categories', verifyToken, categoryRoutes)
     app.use('/misses', verifyToken, missRoutes)
