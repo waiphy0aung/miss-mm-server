@@ -254,7 +254,7 @@ export const update = async (req, res) => {
       hips: Joi.number().min(10).max(100).required(),
       location: Joi.string().required(),
       hobby: Joi.array().items(Joi.string())
-    })
+    }).unknown(true)
     const { error } = joiValidator(JSON.parse(req.body.data), validateSchema);
     if (error) return res.status(500).json({ status: 'fail', data: error })
 
