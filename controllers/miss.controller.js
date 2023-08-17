@@ -11,125 +11,155 @@ import { ObjectId } from "mongodb";
 
 export const get = async (req, res) => {
   try {
+    const {missId} = req.params;
     const { id } = req.user;
     let misses = await Miss.aggregate([
       {
-        '$lookup': {
-          'from': 'votes',
-          'let': {
-            'missId': '$_id'
+        "$match": missId ? {
+          "_id": new ObjectId(missId)
+        } : {}
+      },
+      {
+    $lookup: {
+      from: "votes",
+      let: {
+        missId: "$_id",
+      },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $eq: ["$missId", "$$missId"],
+            },
           },
-          'pipeline': [
-            {
-              '$match': {
-                '$expr': {
-                  '$eq': [
-                    '$missId', '$$missId'
-                  ]
-                }
-              }
-            }, {
-              '$count': 'count'
-            }
-          ],
-          'as': 'voteCount'
-        }
-      }, {
-        '$lookup': {
-          'from': 'votes',
-          'let': {
-            'missId': '$_id',
-            'userId': new ObjectId('64d87a9866e3efbfaac71995')
+        },
+        {
+          $group: {
+            _id: "$categoryId",
+            count: {
+              $count: {},
+            },
           },
-          'pipeline': [
+        },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "_id",
+            foreignField: "_id",
+            as: "name",
+          },
+        },
+        {
+          $unwind: "$name",
+        },
+        {
+          $project: {
+            k: "$name.name",
+            v: "$count",
+            _id: 0,
+          },
+        },
+      ],
+      as: "voteCount",
+    },
+  },
+  {
+    $lookup: {
+      from: "votes",
+      let: {
+        missId: "$_id",
+        userId: new ObjectId(id),
+      },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $eq: ["$userId", "$$userId"],
+              $eq: ["$missId", "$$missId"],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$categoryId",
+            count: {
+              $count: {},
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "_id",
+            foreignField: "_id",
+            as: "name",
+          },
+        },
+        {
+          $unwind: "$name",
+        },
+        {
+          $project: {
+            _id: 0,
+            k: "$name.name",
+            v: {
+              $cond: [
+                {
+                  $gte: ["$count", 0],
+                },
+                true,
+                false,
+              ],
+            },
+          },
+        },
+      ],
+      as: "isVote",
+    },
+  },
+  {
+    $replaceWith: {
+      $setField: {
+        field: "voteCount",
+        input: "$$ROOT",
+        value: {
+          $ifNull: [
             {
-              '$match': {
-                '$expr': {
-                  '$eq': [
-                    '$userId', '$$userId'
-                  ],
-                  '$eq': [
-                    '$missId', '$$missId'
-                  ]
-                }
-              }
-            }, {
-              '$count': 'count'
-            }, {
-              '$project': {
-                'is_vote': {
-                  '$cond': [
-                    {
-                      '$gte': [
-                        '$count', 0
-                      ]
-                    }, true, false
-                  ]
-                }
-              }
-            }
+              $arrayToObject: "$voteCount",
+            },
+            {},
           ],
-          'as': 'isVote'
-        }
-      }, {
-        '$unwind': {
-          'path': '$voteCount',
-          'preserveNullAndEmptyArrays': true
-        }
-      }, {
-        '$unwind': {
-          'path': '$isVote',
-          'preserveNullAndEmptyArrays': true
-        }
-      }, {
-        '$replaceWith': {
-          '$setField': {
-            'field': 'voteCount',
-            'input': '$$ROOT',
-            'value': {
-              '$ifNull': [
-                '$voteCount.count', 0
-              ]
-            }
-          }
-        }
-      }, {
-        '$replaceWith': {
-          '$setField': {
-            'field': 'isVote',
-            'input': '$$ROOT',
-            'value': {
-              '$ifNull': [
-                '$isVote.is_vote', false
-              ]
-            }
-          }
-        }
-      }
+        },
+      },
+    },
+  },
+  {
+    $replaceWith: {
+      $setField: {
+        field: "isVote",
+        input: "$$ROOT",
+        value: {
+          $ifNull: [
+            {
+              $arrayToObject: "$isVote",
+            },
+            {},
+          ],
+        },
+      },
+    },
+  }
     ]);
+    if(missId && misses.length === 0) return res.status(404).json({status: 'error',data: 'Miss not found'});
     res.status(200).json({
       status: 'success',
-      data: misses
+      data: missId ? misses[0] : misses
     })
   } catch (err) {
     res.status(500).json({
       status: 'error',
       data: err.message
     })
-  }
-}
-
-export const getOne = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const miss = await Miss.findById(id)
-    if (!miss) return res.status(404).json({ status: 'error', data: 'Miss not found' })
-    res.status(200).json({
-      status: 'success',
-      data: miss
-    })
-  } catch (err) {
-    res.status(500).json({ status: 'error', data: err.message })
   }
 }
 
@@ -140,6 +170,9 @@ export const create = async (req, res) => {
       age,
       height,
       weight,
+      bust,
+      waist,
+      hips,
       location,
       hobby
     } = JSON.parse(req.body.data);
@@ -150,6 +183,9 @@ export const create = async (req, res) => {
       age: Joi.number().min(15).max(60).required(),
       height: Joi.number().min(150).max(200).required(),
       weight: Joi.number().min(50).max(100).required(),
+      bust: Joi.number().min(10).max(100).required(),
+      waist: Joi.number().min(10).max(100).required(),
+      hips: Joi.number().min(10).max(100).required(),
       location: Joi.string().required(),
       hobby: Joi.array().items(Joi.string())
     })
@@ -171,6 +207,9 @@ export const create = async (req, res) => {
       age,
       height,
       weight,
+      bust,
+      waist,
+      hips,
       location,
       hobby
     })
@@ -194,6 +233,9 @@ export const update = async (req, res) => {
       age,
       height,
       weight,
+      bust,
+      waist,
+      hips,
       location,
       hobby
     } = JSON.parse(req.body.data);
@@ -207,6 +249,9 @@ export const update = async (req, res) => {
       age: Joi.number().min(15).max(60).required(),
       height: Joi.number().min(150).max(200).required(),
       weight: Joi.number().min(50).max(100).required(),
+      bust: Joi.number().min(10).max(100).required(),
+      waist: Joi.number().min(10).max(100).required(),
+      hips: Joi.number().min(10).max(100).required(),
       location: Joi.string().required(),
       hobby: Joi.array().items(Joi.string())
     })
@@ -228,6 +273,9 @@ export const update = async (req, res) => {
       age,
       height,
       weight,
+      bust,
+      waist,
+      hips,
       location,
       hobby
     })

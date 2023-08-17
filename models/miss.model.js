@@ -30,6 +30,24 @@ const MissSchema = mongoose.Schema({
     min: 50,
     max: 100
   },
+  bust: {
+    type: Number,
+    required: true,
+    min: 10,
+    max: 100
+  },
+  waist: {
+    type: Number,
+    required: true,
+    min: 10,
+    max: 100
+  },
+  hips: {
+    type: Number,
+    required: true,
+    min: 10,
+    max: 100
+  },
   location: {
     type: String,
     required: true
