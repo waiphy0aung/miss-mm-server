@@ -179,7 +179,7 @@ export const create = async (req, res) => {
     const find = await Miss.findOne({ name });
     if (find) throw new Error(name + ' already exit')
     const validateSchema = Joi.object({
-      name: Joi.string().min(5).max(50).required(),
+      name: Joi.string().min(2).max(50).required(),
       age: Joi.number().min(15).max(60).required(),
       height: Joi.number().min(150).max(200).required(),
       weight: Joi.number().min(50).max(100).required(),
@@ -244,7 +244,7 @@ export const update = async (req, res) => {
     const find = await Miss.findById(id);
     if (!find) return res.status(500).json({ status: 'error', data: 'Miss not found' })
     const validateSchema = Joi.object({
-      name: Joi.string().min(5).max(50).required(),
+      name: Joi.string().min(2).max(50).required(),
       image: Joi.string().required(),
       age: Joi.number().min(15).max(60).required(),
       height: Joi.number().min(150).max(200).required(),
@@ -258,18 +258,20 @@ export const update = async (req, res) => {
     const { error } = joiValidator(JSON.parse(req.body.data), validateSchema);
     if (error) return res.status(500).json({ status: 'fail', data: error })
 
+    let newImage = image;
+
     if (req.file) {
       const fileName = Math.random().toString(36).substring(2) + "_" + req.file.originalname;
       const storageRef = ref(storage, "miss/" + fileName);
       await uploadBytes(storageRef, req.file.buffer);
       await deleteObject(ref(storage, urlToPath(image)))
-      image = await getDownloadURL(storageRef);
+      newImage = await getDownloadURL(storageRef);
     }
 
     const miss = await Miss.findByIdAndUpdate(id, {
       name,
       slug: slugify(name),
-      image,
+      image: newImage,
       age,
       height,
       weight,
@@ -279,11 +281,13 @@ export const update = async (req, res) => {
       location,
       hobby
     })
+    const updatedMiss = await Miss.findById(id);
     res.status(201).json({
       status: 'success',
-      data: miss
+      data: updatedMiss
     })
   } catch (err) {
+    console.log(err)
     res.status(500).json({
       status: 'error',
       data: err.message
