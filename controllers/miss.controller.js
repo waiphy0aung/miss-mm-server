@@ -11,7 +11,7 @@ import { ObjectId } from "mongodb";
 
 export const get = async (req, res) => {
   try {
-    const {missId} = req.params;
+    const { missId } = req.params;
     const { id } = req.user;
     let misses = await Miss.aggregate([
       {
@@ -20,137 +20,137 @@ export const get = async (req, res) => {
         } : {}
       },
       {
-    $lookup: {
-      from: "votes",
-      let: {
-        missId: "$_id",
-      },
-      pipeline: [
-        {
-          $match: {
-            $expr: {
-              $eq: ["$missId", "$$missId"],
-            },
+        $lookup: {
+          from: "votes",
+          let: {
+            missId: "$_id",
           },
-        },
-        {
-          $group: {
-            _id: "$categoryId",
-            count: {
-              $count: {},
-            },
-          },
-        },
-        {
-          $lookup: {
-            from: "categories",
-            localField: "_id",
-            foreignField: "_id",
-            as: "name",
-          },
-        },
-        {
-          $unwind: "$name",
-        },
-        {
-          $project: {
-            k: "$name.name",
-            v: "$count",
-            _id: 0,
-          },
-        },
-      ],
-      as: "voteCount",
-    },
-  },
-  {
-    $lookup: {
-      from: "votes",
-      let: {
-        missId: "$_id",
-        userId: new ObjectId(id),
-      },
-      pipeline: [
-        {
-          $match: {
-            $expr: {
-              $eq: ["$userId", "$$userId"],
-              $eq: ["$missId", "$$missId"],
-            },
-          },
-        },
-        {
-          $group: {
-            _id: "$categoryId",
-            count: {
-              $count: {},
-            },
-          },
-        },
-        {
-          $lookup: {
-            from: "categories",
-            localField: "_id",
-            foreignField: "_id",
-            as: "name",
-          },
-        },
-        {
-          $unwind: "$name",
-        },
-        {
-          $project: {
-            _id: 0,
-            k: "$name.name",
-            v: {
-              $cond: [
-                {
-                  $gte: ["$count", 0],
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$missId", "$$missId"],
                 },
-                true,
-                false,
+              },
+            },
+            {
+              $group: {
+                _id: "$categoryId",
+                count: {
+                  $count: {},
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "categories",
+                localField: "_id",
+                foreignField: "_id",
+                as: "name",
+              },
+            },
+            {
+              $unwind: "$name",
+            },
+            {
+              $project: {
+                k: "$name.slug",
+                v: "$count",
+                _id: 0,
+              },
+            },
+          ],
+          as: "voteCount",
+        },
+      },
+      {
+        $lookup: {
+          from: "votes",
+          let: {
+            missId: "$_id",
+            userId: new ObjectId(id),
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$userId", "$$userId"],
+                  $eq: ["$missId", "$$missId"],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: "$categoryId",
+                count: {
+                  $count: {},
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "categories",
+                localField: "_id",
+                foreignField: "_id",
+                as: "name",
+              },
+            },
+            {
+              $unwind: "$name",
+            },
+            {
+              $project: {
+                _id: 0,
+                k: "$name.slug",
+                v: {
+                  $cond: [
+                    {
+                      $gte: ["$count", 0],
+                    },
+                    true,
+                    false,
+                  ],
+                },
+              },
+            },
+          ],
+          as: "isVote",
+        },
+      },
+      {
+        $replaceWith: {
+          $setField: {
+            field: "voteCount",
+            input: "$$ROOT",
+            value: {
+              $ifNull: [
+                {
+                  $arrayToObject: "$voteCount",
+                },
+                {},
               ],
             },
           },
         },
-      ],
-      as: "isVote",
-    },
-  },
-  {
-    $replaceWith: {
-      $setField: {
-        field: "voteCount",
-        input: "$$ROOT",
-        value: {
-          $ifNull: [
-            {
-              $arrayToObject: "$voteCount",
-            },
-            {},
-          ],
-        },
       },
-    },
-  },
-  {
-    $replaceWith: {
-      $setField: {
-        field: "isVote",
-        input: "$$ROOT",
-        value: {
-          $ifNull: [
-            {
-              $arrayToObject: "$isVote",
+      {
+        $replaceWith: {
+          $setField: {
+            field: "isVote",
+            input: "$$ROOT",
+            value: {
+              $ifNull: [
+                {
+                  $arrayToObject: "$isVote",
+                },
+                {},
+              ],
             },
-            {},
-          ],
+          },
         },
-      },
-    },
-  }
+      }
     ]);
-    if(missId && misses.length === 0) return res.status(404).json({status: 'error',data: 'Miss not found'});
+    if (missId && misses.length === 0) return res.status(404).json({ status: 'error', data: 'Miss not found' });
     res.status(200).json({
       status: 'success',
       data: missId ? misses[0] : misses
