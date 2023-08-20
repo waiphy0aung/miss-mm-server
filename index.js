@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.route.js'
 import categoryRoutes from './routes/category.route.js'
 import missRoutes from './routes/miss.route.js'
 import voteRoutes from './routes/vote.route.js'
+import lockRoutes from './routes/lock.route.js'
 import { verifyToken } from './middlewares/auth.middleware.js'
 
 const __filename = fileURLToPath(import.meta.url);
@@ -43,6 +44,7 @@ mongoose.connect(process.env.MONGO_URL, {
     app.use('/categories', verifyToken, categoryRoutes)
     app.use('/misses', verifyToken, missRoutes)
     app.use('/vote', verifyToken, voteRoutes)
+    app.use('/lock',verifyToken,lockRoutes)
   })
   .catch(err => console.log(err + " didn't connect"))
   .finally(() => server.listen(port,() => console.log("server is listening at port "+port)))
