@@ -24,13 +24,19 @@ export const get = async (req, res) => {
           from: "votes",
           let: {
             missId: "$_id",
+            userId: new ObjectId(id)
           },
           pipeline: [
             {
               $match: {
-                $expr: {
-                  $eq: ["$missId", "$$missId"],
-                },
+                $and: [
+                  {$expr: {
+                  	$eq: ["$userId", "$$userId"],
+                	}},
+                  {$expr: {
+                    $eq: ["$missId","$$missId"]
+                  }}
+                ]
               },
             },
             {
@@ -68,13 +74,12 @@ export const get = async (req, res) => {
           from: "votes",
           let: {
             missId: "$_id",
-            userId: new ObjectId(id),
           },
           pipeline: [
             {
               $match: {
                 $expr: {
-                  $eq: ["$userId", "$$userId"],
+                  
                   $eq: ["$missId", "$$missId"],
                 },
               },

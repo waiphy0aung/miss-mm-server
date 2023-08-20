@@ -3,7 +3,7 @@ import Lock from "../models/lock.model.js";
 import { authorize } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
-router.get('/',authorize,async (req,res) => {
+router.get('/',async (req,res) => {
   try{
     const find = await Lock.find();
     if(find.length === 0 || !find) await Lock.create({isLock: true})
