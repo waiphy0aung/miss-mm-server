@@ -13,13 +13,14 @@ import categoryRoutes from './routes/category.route.js'
 import missRoutes from './routes/miss.route.js'
 import voteRoutes from './routes/vote.route.js'
 import lockRoutes from './routes/lock.route.js'
-import { verifyToken } from './middlewares/auth.middleware.js'
+import userRoutes from './routes/user.route.js'
+import { authorize, verifyToken } from './middlewares/auth.middleware.js'
 
 const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
 dotenv.config()
 const app = express();
-app.use(express.json({limit: '30mb'}))
+app.use(express.json({ limit: '30mb' }))
 app.use(express.urlencoded({ limit: '30mb', extended: true }));
 app.use(helmet())
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }))
@@ -39,12 +40,13 @@ mongoose.connect(process.env.MONGO_URL, {
 })
   .then(() => {
     console.log("database connected")
-    app.get('/',(req,res) => res.status(200).json({status: "success"}))
+    app.get('/', (req, res) => res.status(200).json({ status: "success" }))
     app.use('/auth', authRoutes)
     app.use('/categories', verifyToken, categoryRoutes)
     app.use('/misses', verifyToken, missRoutes)
     app.use('/vote', verifyToken, voteRoutes)
-    app.use('/lock',verifyToken,lockRoutes)
+    app.use('/lock', lockRoutes)
+    app.use('/users', verifyToken, authorize, userRoutes)
   })
   .catch(err => console.log(err + " didn't connect"))
-  .finally(() => server.listen(port,() => console.log("server is listening at port "+port)))
+  .finally(() => server.listen(port, () => console.log("server is listening at port " + port)))

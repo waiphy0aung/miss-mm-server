@@ -1,6 +1,6 @@
 import express from "express";
 import Lock from "../models/lock.model.js";
-import { authorize } from "../middlewares/auth.middleware.js";
+import { authorize, verifyToken } from "../middlewares/auth.middleware.js";
 import moment from "moment";
 const router = express.Router();
 
@@ -16,7 +16,7 @@ router.get('/',async (req,res) => {
   }
 })
 
-router.post('/',authorize,async (req,res) => {
+router.post('/',verifyToken ,authorize,async (req,res) => {
   try{
     let lock = await Lock.find();
     if(lock.length === 0) await Lock.create({isLock: false});
@@ -31,7 +31,7 @@ router.post('/',authorize,async (req,res) => {
   }
 })
 
-router.post('/result',authorize,async(req,res) => {
+router.post('/result',verifyToken, authorize,async(req,res) => {
   try{
     let find = await Lock.find();
     console.log(find[0])
@@ -45,12 +45,12 @@ router.post('/result',authorize,async(req,res) => {
   }
 })
 
-router.post('/voting-time',authorize,async(req,res) => {
+router.post('/voting-time',verifyToken ,authorize,async(req,res) => {
   try{
     const {time} = req.body;
-    const newDate = moment(time,"H:mm").utcOffset('+6:30').toISOString();
+    const newDate = moment(time,"H:mm").utcOffset('+6:30').toDate();
     const find = await Lock.find();
-    console.log(moment(newDate).format("H:mm a"))
+    console.log(moment(newDate).format("H:mm a"),newDate)
     let result = await Lock.findByIdAndUpdate(find[0]._id,{
       votingTime: newDate
     })
