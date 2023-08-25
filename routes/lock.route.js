@@ -49,8 +49,8 @@ router.post('/voting-time',verifyToken ,authorize,async(req,res) => {
   try{
     const {time} = req.body;
     const newDate = moment(time,"H:mm").utcOffset('+6:30').toDate();
+    console.log(moment(newDate).format("DD h:mm a"))
     const find = await Lock.find();
-    console.log(moment(newDate).format("H:mm a"),newDate)
     let result = await Lock.findByIdAndUpdate(find[0]._id,{
       votingTime: newDate
     })
