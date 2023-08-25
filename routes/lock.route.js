@@ -1,7 +1,7 @@
 import express from "express";
 import Lock from "../models/lock.model.js";
 import { authorize, verifyToken } from "../middlewares/auth.middleware.js";
-import moment from "moment";
+import moment from "moment-timezone"
 const router = express.Router();
 
 router.get('/',async (req,res) => {
@@ -47,9 +47,8 @@ router.post('/result',verifyToken, authorize,async(req,res) => {
 
 router.post('/voting-time',verifyToken ,authorize,async(req,res) => {
   try{
-    const {time} = req.body;
-    const newDate = moment(time,"H:mm").utcOffset('+0630').toDate();
-    console.log(moment(newDate).format("DD h:mm a"))
+    const {hours,minutes} = req.body;
+    const newDate = moment().tz('Asia/Yangon').add(hours,'hours').add(minutes,'minutes').toDate();
     const find = await Lock.find();
     let result = await Lock.findByIdAndUpdate(find[0]._id,{
       votingTime: newDate
