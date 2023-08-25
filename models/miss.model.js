@@ -27,7 +27,7 @@ const MissSchema = mongoose.Schema({
   weight: {
     type: Number,
     required: true,
-    min: 50,
+    min: 40,
     max: 100
   },
   bust: {
