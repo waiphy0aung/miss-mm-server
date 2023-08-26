@@ -38,4 +38,17 @@ export const getUsers = async (req, res) => {
   }
 }
 
+export const destroy = async (req,res) => {
+  try{
+    const {id} = req.params;
+    const find = await User.findById(id);
+    if(!find) return res.status(404).json({status: 'error',data: 'User not found'})
+    await User.findByIdAndDelete(id);
+    res.status(200).json({status: 'success',data: id})
+  }catch (err){
+    console.log(err);
+    res.status(500).json({status: 'error',data: err.message})
+  }
+}
+
 
